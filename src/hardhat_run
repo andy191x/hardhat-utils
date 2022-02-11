@@ -1,0 +1,50 @@
+#!/bin/bash
+
+#
+# hardhat_run
+#
+# Adds parameter support to the "hardhat run" command by creating environment variables with each arg.
+# Environment variables are accessible through "process.env" in Hardhat scripts.
+#
+# Usage: hardhat_run <SCRIPT> [...]
+#
+
+HH_RUN="npx hardhat run"
+HH_ARG_PREFIX="ARG_"
+
+if [ "$1" == "" ]; then
+	echo "hardhat_run <SCRIPT> [...]"
+	exit 1
+fi
+
+# Set vars
+i=0
+for arg in "$@"
+do
+	if [ $i -gt 0 ]; then
+		j=i
+		((j--))
+		HH_ARG="$HH_ARG_PREFIX$j"
+		declare -x $HH_ARG=$arg
+	fi
+	((i++))
+done
+
+# Run Hardhat script
+$HH_RUN $1
+HH_RESULT=$?
+
+# Clear vars
+i=0
+for arg in "$@"
+do
+	if [ $i -gt 0 ]; then
+		j=i
+		((j--))
+		HH_ARG="$HH_ARG_PREFIX$j"
+		declare -x $HH_ARG=""
+	fi
+	((i++))
+done
+
+exit $HH_RESULT
