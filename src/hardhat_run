@@ -6,45 +6,89 @@
 # Adds parameter support to the "hardhat run" command by creating environment variables with each arg.
 # Environment variables are accessible through "process.env" in Hardhat scripts.
 #
-# Usage: hardhat_run <SCRIPT> [...]
+# Usage: hardhat_run [GLOBAL OPTIONS] <SCRIPT> args [...]
 #
 
-HH_RUN="npx hardhat run"
+HH_CMD="npx hardhat"
 HH_ARG_PREFIX="ARG_"
 
-if [ "$1" == "" ]; then
-	echo "hardhat_run <SCRIPT> [...]"
+
+# -----------------------
+
+function usage
+{
+	echo "hardhat_run [GLOBAL OPTIONS] <SCRIPT> args [...]"
+}
+
+# -----------------------
+
+arg_array=( "$@" )
+arg_count=${#arg_array[@]}
+user_arg_start=-1
+
+# Find user arg starting position
+i=0
+for arg in "${arg_array[@]}"; do
+	if [ "$arg" == "args" ]; then
+		user_arg_start=$i
+	fi
+	((i++))
+done
+
+if [ $user_arg_start -lt 1 ]; then
+	# SCRIPT or user args not defined
+	usage
 	exit 1
 fi
 
-# Set vars
+# Set env vars
 i=0
-for arg in "$@"
-do
-	if [ $i -gt 0 ]; then
-		j=i
+for arg in "${arg_array[@]}"; do
+	if [ $i -gt $user_arg_start ]; then
+		j=$i
+		((j -= user_arg_start))
 		((j--))
-		HH_ARG="$HH_ARG_PREFIX$j"
-		declare -x $HH_ARG=$arg
+		hh_arg="$HH_ARG_PREFIX$j"
+		declare -x $hh_arg=$arg
 	fi
 	((i++))
 done
 
-# Run Hardhat script
-$HH_RUN $1
-HH_RESULT=$?
+# Generate command
+cmd="$HH_CMD "
 
-# Clear vars
+script_arg_start=$user_arg_start
+((script_arg_start--))
+
 i=0
-for arg in "$@"
-do
-	if [ $i -gt 0 ]; then
-		j=i
-		((j--))
-		HH_ARG="$HH_ARG_PREFIX$j"
-		declare -x $HH_ARG=""
+for arg in "${arg_array[@]}"; do
+	if [ $i -lt $script_arg_start ]; then
+		cmd="$cmd $arg"
+	elif [ $i -eq $script_arg_start ]; then
+		cmd="$cmd run $arg"
 	fi
 	((i++))
 done
 
-exit $HH_RESULT
+# Run Hardhat
+#echo $cmd
+$cmd
+hh_result=$?
+
+# Clear env vars
+i=0
+for arg in "${arg_array[@]}"; do
+	if [ $i -gt $user_arg_start ]; then
+		j=$i
+		((j -= user_arg_start))
+		((j--))
+		hh_arg="$HH_ARG_PREFIX$j"
+		declare -x $hh_arg=""
+	fi
+	((i++))
+done
+
+exit $hh_result
+
+# -----------------------
+
