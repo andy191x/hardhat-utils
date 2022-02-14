@@ -1,9 +1,9 @@
 #!/bin/bash
 
 #
-# hardhat_run
+# hardhat_deploy
 #
-# Adds parameter support to the "hardhat run" command by creating environment variables with each arg.
+# Adds parameter support to the "hardhat deploy" command by creating environment variables with each arg.
 # Environment variables are accessible through "process.env" in Hardhat scripts.
 #
 
@@ -14,7 +14,7 @@ HH_ARG_PREFIX="ARG_"
 
 function usage
 {
-	echo "hardhat_run [GLOBAL OPTIONS] <SCRIPT> args [...]"
+	echo "hardhat_deploy [GLOBAL OPTIONS] deploy [DEPLOY ARGS] args [...]"
 }
 
 # -----------------------
@@ -33,7 +33,7 @@ for arg in "${arg_array[@]}"; do
 done
 
 if [ $user_arg_start -lt 1 ]; then
-	# SCRIPT or user args not defined
+	# user args not defined
 	usage
 	exit 1
 fi
@@ -54,15 +54,10 @@ done
 # Generate command
 cmd="$HH_CMD "
 
-script_arg_start=$user_arg_start
-((script_arg_start--))
-
 i=0
 for arg in "${arg_array[@]}"; do
-	if [ $i -lt $script_arg_start ]; then
+	if [ $i -lt $user_arg_start ]; then
 		cmd="$cmd $arg"
-	elif [ $i -eq $script_arg_start ]; then
-		cmd="$cmd run $arg"
 	fi
 	((i++))
 done
